@@ -50,6 +50,25 @@ class backuppc::params {
       $bzip2_path         = '/usr/bin/bzip2'
       $tar_path           = '/bin/gtar'
     }
+    'Archlinux': {
+      $package            = [ 'backuppc', 'perl-cgi', 'perl-module-build' ]
+      $service            = 'backuppc'
+      $topdir             = '/var/lib/BackupPC'
+      $config_directory   = '/etc/backuppc'
+      $config             = "${config_directory}/config.pl"
+      $hosts              = "${config_directory}/hosts"
+      $install_directory  = '/usr/share/backuppc'
+      $cgi_directory      = "${install_directory}/sbin"
+      $cgi_image_dir      = "${install_directory}/html"
+      $cgi_image_dir_url  = '/backuppc/image'
+      $log_directory      = '/var/log/backuppc'
+      $config_apache      = '/etc/httpd/conf/extra/backuppc.conf'
+      $group_apache       = 'httpd'
+      $par_path           = ''
+      $gzip_path          = '/usr/sbin/gzip'
+      $bzip2_path         = '/usr/sbin/bzip2'
+      $tar_path           = '/usr/sbin/tar'
+    }
     default: {
       fail("Operating system ${::operatingsystem} is not supported by this module")
     }
