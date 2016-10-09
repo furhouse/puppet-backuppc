@@ -195,8 +195,12 @@
 #    If set and the Dump/Restore/Archive Pre/Post UserCmd returns a non-zero exit status then the dump/restore/archive is aborted. To maintain backward compatibility (where the exit status in early versions was always ignored), this flag defaults to 0.
 #    If this flag is set and the Dump/Restore/Archive PreUserCmd fails then the matching Dump/Restore/Archive PostUserCmd is not executed. If DumpPreShareCmd returns a non-exit status, then DumpPostShareCmd is not executed, but the DumpPostUserCmd is still run (since DumpPreUserCmd must have previously succeeded).
 #    An example of a DumpPreUserCmd that might fail is a script that snapshots or dumps a database which fails because of some database error.
+#
 # [*topdir*]
 # Overwrite package default location for backuppc.
+#
+# [*ping_max_msec*]
+# Overwrite the maximum roundtrip time, this flag defaults to 20.
 #
 # === Examples
 #
@@ -253,7 +257,8 @@ class backuppc::server (
   $cgi_admin_users            = 'backuppc',
   $cgi_admin_user_group       = 'backuppc',
   $cgi_date_format_mmdd       = 1,
-  $user_cmd_check_status      =  true,
+  $user_cmd_check_status      = true,
+  $ping_max_msec              = 20,
 ) inherits backuppc::params  {
 
   if empty($backuppc_password) {
@@ -321,9 +326,12 @@ class backuppc::server (
 
   validate_re("${email_notify_old_backup_days}", '^[1-9]([0-9]*)?$',
   'Blackout_good_cnt parameter should be a number')
-  
+
   validate_re("${cgi_date_format_mmdd}", '^[012]$',
   'Cgi_date_format_mmdd parameter should be 0-2')
+
+  validate_re("${ping_max_msec}", '^[1-9]([0-9]*)?$',
+  'Ping_max_msec parameter should be a number')
 
   validate_array($wakeup_schedule)
   validate_array($dhcp_address_ranges)
