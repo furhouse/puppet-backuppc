@@ -168,6 +168,9 @@
 # [*email_admin_user_name*]
 # Destination address to an administrative user who will receive a nightly email with warnings and errors.
 #
+# [*email_destination_domain*]
+# Destination domain name for email sent to users.
+#
 # [*email_notify_old_backup_days*]
 # How old the most recent backup has to be before notifying user. When there have been no backups in this
 # number of days the user is sent an email.
@@ -195,8 +198,12 @@
 #    If set and the Dump/Restore/Archive Pre/Post UserCmd returns a non-zero exit status then the dump/restore/archive is aborted. To maintain backward compatibility (where the exit status in early versions was always ignored), this flag defaults to 0.
 #    If this flag is set and the Dump/Restore/Archive PreUserCmd fails then the matching Dump/Restore/Archive PostUserCmd is not executed. If DumpPreShareCmd returns a non-exit status, then DumpPostShareCmd is not executed, but the DumpPostUserCmd is still run (since DumpPreUserCmd must have previously succeeded).
 #    An example of a DumpPreUserCmd that might fail is a script that snapshots or dumps a database which fails because of some database error.
+#
 # [*topdir*]
 # Overwrite package default location for backuppc.
+#
+# [*pingmaxmsec*]
+# Maximum RTT value (in ms) above which backup won't be started. Default to 20ms
 #
 # === Examples
 #
@@ -241,6 +248,7 @@ class backuppc::server (
   $email_notify_min_days      = 2.5,
   $email_from_user_name       = 'backuppc',
   $email_admin_user_name      = 'backuppc',
+  $email_destination_domain   = '',
   $email_notify_old_backup_days = 7,
   $email_headers              = { 'MIME-Version' => 1.0,
                                   'Content-Type' => 'text/plain; charset="iso-8859-1"', },
@@ -253,7 +261,8 @@ class backuppc::server (
   $cgi_admin_users            = 'backuppc',
   $cgi_admin_user_group       = 'backuppc',
   $cgi_date_format_mmdd       = 1,
-  $user_cmd_check_status      =  true,
+  $user_cmd_check_status      = true,
+  $pingmaxmsec                = 20
 ) inherits backuppc::params  {
 
   if empty($backuppc_password) {
@@ -321,9 +330,12 @@ class backuppc::server (
 
   validate_re("${email_notify_old_backup_days}", '^[1-9]([0-9]*)?$',
   'Blackout_good_cnt parameter should be a number')
-  
+
   validate_re("${cgi_date_format_mmdd}", '^[012]$',
   'Cgi_date_format_mmdd parameter should be 0-2')
+
+  validate_re("${pingmaxmsec}", '^[1-9]([0-9]*)?$',
+  'pingmaxmsec parameter should be a number')
 
   validate_array($wakeup_schedule)
   validate_array($dhcp_address_ranges)
@@ -347,6 +359,21 @@ class backuppc::server (
   $real_topdir = $topdir ? {
     ''      => $backuppc::params::topdir,
     default => $topdir,
+  }
+
+  # On Debian, adapt log_directory to $topdir value
+  $real_log_directory = $::osfamily ? {
+    'Debian' => "${topdir}/log",
+    default  => $backuppc::params::log_directory,
+  }
+
+  # If topdir is changed, create a symlink between "default" topdir and the custom
+  # This permit "facter/backuppc_pubkey_rsa" to work properly.
+  if $real_topdir != $backuppc::params::topdir {
+    file { $backuppc::params::topdir:
+      ensure => link,
+      target => $real_topdir,
+    }
   }
 
   # Set up dependencies
